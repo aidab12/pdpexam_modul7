@@ -1,0 +1,75 @@
+1️⃣ Serializers & Validation
+Sizda quyidagi modellardan foydalaniladi:
+
+class Author(Model):
+    name = CharField(max_length=100, unique=True)
+    birth_date = DateField()
+
+class Book(Model):
+    title = CharField(max_length=200)
+    author = ForeignKey(Author, on_delete=CASCADE, related_name="books")
+    price = DecimalField(max_digits=10, decimal_places=2)
+    published_date = DateField()
+
+Vazifa:
+AuthorSerializer yozing: u ichida author ma’lumotlari va unga tegishli barcha books ro‘yxati ham chiqsin.
+BookSerializer yozing: validatsiya shartini qo‘shing — published_date kelajakda bo‘lishi mumkin emas. Agar noto‘g‘ri kiritilsa, ValidationError qaytarsin.
+Book yaratishda author mavjud bo‘lmasa, avtomatik ravishda yangi Author yaratsin (create() metodini override qiling).
+Serializerlarni api orqali natijasini chiqarib korsating.
+
+2️⃣ Custom Pagination
+Article modeli mavjud:
+
+class Article(Model):
+    title = CharField(max_length=200)
+    content = TextField()
+    views = PositiveIntegerField(default=0)
+    created_at = DateTimeField(auto_now_add=True)
+
+Vazifa:
+Custom pagination yozing: har bir sahifada 10 ta maqola ko‘rinishi kerak, lekin foydalanuvchi query param orqali (?page_size=5) bu sonni o‘zgartira olsin (chegara — max 50).
+Maqolalar default tarzda created_at bo‘yicha kamayish tartibida chiqarilsin.
+
+
+3️⃣ Advanced Filters (Search + Ordering + Range)
+Product modeli:
+class Product(Model):
+    name = CharField(max_length=100)
+    price = DecimalField(max_digits=10, decimal_places=2)
+    category = ManyToMany(Category, blank=True)
+    stock = IntegerField()
+    created_at = DateTimeField(auto_now_add=True)
+
+Vazifa:
+django-filter + SearchFilter + OrderingFilter ni birlashtirib ishlating.
+Foydalanuvchi API orqali quyidagilarni qila olishi kerak:
+?search=phone → name va category bo‘yicha qidiruv.
+?ordering=-price → narx bo‘yicha kamayish tartibida chiqarish.
+?price_min=100&price_max=500 → narx diapazonida filterlash.
+?stock__gte=10 → ombordagi mahsulot soni bo‘yicha filterlash.
+?category_count=2 → productning kategoriyalar soni boyicha filterlash.
+
+4️⃣ Custom Admin + Signals
+Order modeli:
+class Order(Model):
+    product = ForeignKey(Product, on_delete=CASCADE)
+    user = ForeignKey('auth.User', on_delete=CASCADE)
+    quantity = PositiveIntegerField()
+    ordered_at = DateTimeField(auto_now_add=True)
+    status = CharField(
+        max_length=20,
+        choices=[('new', 'New'), ('shipped', 'Shipped'), ('delivered', 'Delivered')]
+    )
+
+Vazifa:
+Admin panelda list_display va list_filter sozlang (status, ordered_at).
+Adminda readonly_fields qo‘shing (ordered_at).
+Signal yozing: agar Order yaratilsa, Product.stock dan avtomatik ravishda quantity kamayib ketsin. Agar stock yetarli bo‘lmasa, exception chiqarilsin.
+
+
+5️⃣ JWT
+JWT orqali autentifikatsiya qilinadigan API yozing (rest_framework_simplejwt).
+User modelida qo‘shimcha role maydoni bo‘lsin (admin, manager, customer). API endpointlar uchun quyidagilarni yozing:
+/api/v1/products → faqat admin va manager mahsulot qo‘shishi mumkin.
+/api/v1/orders → customer faqat o‘zining buyurtmalarini ko‘ra oladi, admin esa hamma buyurtmalarni ko‘ra oladi.
+Token refresh logikasini qo‘shing (refresh → new access).
